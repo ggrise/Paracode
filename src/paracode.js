@@ -1,72 +1,17 @@
-var util   = require('util'),
-    spawn = require('child_process').spawn,
-	events = require('events'),
-	http = require('http'),
+var http = require('http'),
 	async = require('async'),
 	sqlite = require('sqlite3'),
 	express = require('express'),
 	url = require('url'),
-    dtrace    = spawn('./paracode.d', []);
+	DtraceConsumer = require("./lib/dtrace").DtraceConsumer;
+
+
+var consumer = new DtraceConsumer();
 
 process.setuid(501);
 
-process.on('SIGTERM', function () {
-	dtrace.kill(dtrace);
-});
-	
-var DtraceConsumer = function() {
-	events.EventEmitter.call(this);
-
-	var buffer = "";
-	this.process_http = function(httpinfo) {
-		var execname = httpinfo[0];
-		var pid = parseInt(httpinfo[1]);
-		var httptuple = httpinfo[2].split(" ");
-
-		this.emit('http', {execname: execname, pid: pid, time: new Date(), info: {method: httptuple[0], host: httptuple[1], path: httptuple[2], referer:httptuple[3] == "-" ? null : httptuple[3]}});
-	}
-
-	this.process_file = function(data) {
-		var execname = data[0];
-		var pid = data[1];
-		var file = data[2];
-		this.emit('file', {execname: execname, pid: pid, time: new Date(), info: {filename: file}});
-	}
-	this.process_output = function(data) {
-		var info = data.split("\t");
-		if(info[0] == "f") {
-			this.process_file(info.slice(1, info.length))
-		} else {
-			this.process_http(info.slice(1, info.length))
-		}
-	}
-	var self = this;
-	dtrace.stdout.on('data', function (data) {
-		buffer += data.asciiSlice(0,data.length) 
-		var idx = -1;
-		
-		idx = buffer.indexOf("\n");
-		while(idx != -1) {
-			var record = buffer.substring(0, idx);
-			self.process_output(record);
-			buffer = buffer.substring(idx+1);
-			idx = buffer.indexOf("\n");
-		}
-
-	});
-	dtrace.stderr.on('data', function (data) {
-	  console.log('stderr: ' + data);
-	});
-
-	dtrace.on('exit', function (code) {
-	  console.log('child process exited with code ' + code);
-	});
-}
-
-util.inherits(DtraceConsumer, events.EventEmitter);
-
-var consumer = new DtraceConsumer();
 var db = new sqlite.Database("codenurl.db");
+
 db.serialize(function() {
 	db.run("CREATE TABLE IF NOT EXISTS fileurls (file TEXT, fdate TEXT, fexec TEXT, hdate TEXT, hexec TEXT, host TEXT, path TEXT)");
 	db.run("CREATE INDEX IF NOT EXISTS file_idx ON fileurls (file)");
@@ -83,6 +28,7 @@ var eviction = function() {
 	}
 	to_evince.forEach(function(k) { delete last_url[k]; })
 };
+
 consumer.on("http", function(data) {
 	var info = data.info;
 	var hurl = url.parse("http://" +  info.host + info.path);
