@@ -1,4 +1,4 @@
-	<h1>paracode</h1>
+	<a href="/"><h1>paracode</h1></a>
 	<form class="form-search">
 		<h3>search</h3> <input name=q type=text></input>
 	</form>
@@ -7,11 +7,16 @@
 	<% if(topfiles) { %>
 		<table class="table table-condensed">
 			<tr>
+				<th>time</th>
 				<th>last modified</th>
 			</tr>
-		<%topfiles.forEach(function(file) {%>
+		<%topfiles.forEach(function(record) {
+			var dobj = new Date(record.fdate/1000);
+			var dtime = new Date().getTime() - record.fdate > 1000*60*60*24 ? obj.toLocaleDateString() : dobj.toLocaleTimeString(); 
+		%>
 			<tr>
-				<td><a href="?q=<%= file  %>"><%= file %></a></td>
+				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
+				<td><a href="?q=<%= record.file  %>"><%= record.file %></a></td>
 			</tr>
 		<%});%>
 		</table>
@@ -23,13 +28,18 @@
 	<% if(records) { %>
 		<table class="table table-condensed">
 			<tr>
+				<th>time</th>
 				<th>file</th>
 				<th>program (editor / browser)</th>
 				<th>url</th>
 			</tr>
-		<%records.forEach(function(record) {%>
+		<%records.forEach(function(record) {
+			var dobj = new Date(record.hdate/1000);
+			var dtime = new Date().getTime() - record.hdate > 1000*60*60*24 ? obj.toLocaleDateString() : dobj.toLocaleTimeString(); 
+		%>
 			<tr>
-				<td><%= record.file  %></td>
+				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
+				<td><%= record.file %></td>
 				<td><%= record.fexec %> / <%= record.hexec %></td>
 				<td><a href="http://<%= record.host + record.path %>"><%
 					var url = record.host + record.path;

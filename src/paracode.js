@@ -169,7 +169,7 @@ var filter_content_type = function(content_type, list, mcallback) {
 var search_files = function(file, callback) {
 	  var records = [];
 	  db.serialize(function() {
-		db.each("SELECT * FROM fileurls where file like ?", "%"+file, function(err, row) {
+		db.each("SELECT * FROM fileurls where file like ? order by hdate desc", "%"+file, function(err, row) {
 	  		records.push(row);
 		}, function(err, count) {
 			callback(records);
@@ -180,8 +180,8 @@ var search_files = function(file, callback) {
 var last_files = function(callback) {
 	var files = [];
 	db.serialize(function() {
-		db.each("select distinct file from fileurls order by fdate desc limit 20", function(err, row) {
-			files.push(row.file);
+		db.each("select distinct file,max(fdate) as fdate from fileurls order by fdate desc limit 20", function(err, row) {
+			files.push(row);
 		}, function(err, count) {
 			callback(files);
 		})
