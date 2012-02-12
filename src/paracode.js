@@ -8,7 +8,9 @@ var http = require('http'),
 
 var consumer = new DtraceConsumer();
 
-process.setuid(501);
+if(process.env.SUDO_UID) {
+	process.setuid(parseInt(process.env.SUDO_UID));
+}
 
 var db = new sqlite.Database("codenurl.db");
 
@@ -60,7 +62,6 @@ consumer.on("file", function(data) {
 	last_url = {};
 	filter_content_type("text/html", _urls, function(urls) {
 		db.serialize(function() {
-			console.log(urls);
 			var stmt = db.prepare("INSERT INTO fileurls VALUES (?,?,?,?,?,?,?)");
 			urls.forEach(function(hurl)  {
 				if(!hurl.info) return;
