@@ -1,0 +1,47 @@
+	<h1>paracode</h1>
+	<form class="form-search">
+		<h3>search</h3> <input name=q type=text></input>
+	</form>
+
+	<p>
+	<% if(topfiles) { %>
+		<table class="table table-condensed">
+			<tr>
+				<th>last modified</th>
+			</tr>
+		<%topfiles.forEach(function(file) {%>
+			<tr>
+				<td><a href="?q=<%= file  %>"><%= file %></a></td>
+			</tr>
+		<%});%>
+		</table>
+	<%}%>
+
+
+
+
+	<% if(records) { %>
+		<table class="table table-condensed">
+			<tr>
+				<th>file</th>
+				<th>program (editor / browser)</th>
+				<th>url</th>
+			</tr>
+		<%records.forEach(function(record) {%>
+			<tr>
+				<td><%= record.file  %></td>
+				<td><%= record.fexec %> / <%= record.hexec %></td>
+				<td><a href="http://<%= record.host + record.path %>"><%
+					var url = record.host + record.path;
+					if(url.length > 100) {
+						url = url.substring(0,97);
+						url += "...";
+					}
+				%><%= url %></a></td>
+			</tr>
+
+		<%});%>
+		</table>
+	<%}%>
+	</p>
+
