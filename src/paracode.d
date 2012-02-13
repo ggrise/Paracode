@@ -24,7 +24,7 @@ syscall::connect*:entry
 }
 
 syscall::connect*:return
-/self->socket_fd > 0 && self->port == 80 || self->port == 443/
+/self->socket_fd > 0 && (self->port == 80 || self->port == 8080)/
 {
 	self->is_tcp_http = execname; /* flag the process for tracking */
 	self->is_socket[self->socket_fd] = 1; /* track this fd */

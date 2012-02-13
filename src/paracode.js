@@ -38,7 +38,7 @@ consumer.on("http", function(data) {
 	if(hurl.pathname.match(/^.*[.\/](jpe?g|ico|woff|png|gif|swf|bmp|avi|flv|js(on)?|xml|css|login\.php)\/?$/i) || hurl.pathname.match(/\/(ads|js|cgi-bin|collect)\//i)) {
 		return;
 	}
-	if(hurl.hostname.match(/^(..?|[0-9]|[^.]+\.gstatic|[^.]+\.gravatar|www\.facebook|assets|log|ocsp|pageads|static|api|safebrowsing(-[^.]+)?|pixel|maps|cdn)[0-9]*\./i)) {
+	if(hurl.hostname.match(/^(..?|[0-9]|[^.]+\.gstatic|[^.]+\.gravatar|www\.facebook|assets|log|ocsp|pageads|static|api|safebrowsing(-[^.]+)?|pixel|maps|cdn)[0-9]*\./i) || hurl.hostname == "localhost" || hurl.hostname == "127.0.0.1") {
 		return;
 	}
 
