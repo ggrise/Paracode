@@ -36,15 +36,17 @@ consumer.on("http", function(data) {
 	var info = data.info;
 	var hurl = url.parse("http://" +  info.host + info.path);
 	
-	if(hurl.pathname.match(/^.*[.\/](jpe?g|ico|woff|png|gif|swf|bmp|avi|flv|js(on)?|xml|css|login\.php)\/?$/i) || hurl.pathname.match(/\/(ads|js|cgi-bin|collect)\//i)) {
+	if(hurl.pathname.match(/^.*[.\/](jpe?g|ico|woff|png|gif|swf|bmp|avi|flv|js(on)?|xml|css|login\.php)\/?$/i) 
+		|| hurl.pathname.match(/\/(ads|js|cgi-bin|collect)\//i)) {
 		return;
 	}
-	if(hurl.hostname.match(/^(..?|[0-9]|[^.]+\.gstatic|[^.]+\.gravatar|www\.facebook|assets|log|ocsp|pageads|static|api|safebrowsing(-[^.]+)?|pixel|maps|cdn)[0-9]*\./i) || hurl.hostname == "localhost" || hurl.hostname == "127.0.0.1") {
+	if(hurl.hostname.match(/^(..?|[0-9]|[^.]+\.gstatic|[^.]+\.gravatar|www\.facebook|assets|log|ocsp|pageads|static|api|safebrowsing(-[^.]+)?|pixel|maps|cdn)[0-9]*\./i) 
+		|| hurl.hostname == "localhost" || hurl.hostname == "127.0.0.1") {
 		return;
 	}
 
 	if(last_url[info.referer]) {
-		//if the host name is the same and the time is < 2sec ignore the page
+		//if the host name is the same and the time is < 3sec ignore the page
 		var ref = last_url[info.referer];
 		if(data.time.getTime() - ref.time.getTime() < 3000) {
 			data.info = null;
@@ -106,7 +108,6 @@ var filter_content_type = function(content_type, list, mcallback) {
 				if(res.statusCode	< 399) {
 					var ct = res.headers['content-type'];
 					if(ct && ct.indexOf(content_type) != -1) {
-						//good!
 						callback(null, data);
 						return;
 					}
