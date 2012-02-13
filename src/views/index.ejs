@@ -16,7 +16,7 @@
 		%>
 			<tr>
 				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
-				<td><a href="?q=<%= record.file  %>"><%= record.file %></a></td>
+				<td><a href="?q=<%= record.file  %>"><%= record.basename %></a></td>
 			</tr>
 		<%});%>
 		</table>
@@ -39,7 +39,7 @@
 		%>
 			<tr>
 				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
-				<td><%= record.file %></td>
+				<td><%= record.basename %></td>
 				<td><%= record.fexec %> / <%= record.hexec %></td>
 				<td><a href="http://<%= record.host + record.path %>"><%
 					var url = record.host + record.path;

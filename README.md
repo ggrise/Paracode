@@ -32,7 +32,7 @@ Limitations
 
 Usage
 -----------
-`sudo node paracode.js 2> /dev/null &`
+`sudo sh -c "exec node src/paracode.js 2> /dev/null &"`
 
 `open http://localhost:3000`
 

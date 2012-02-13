@@ -3,6 +3,7 @@ var http = require('http'),
 	sqlite = require('sqlite3'),
 	express = require('express'),
 	url = require('url'),
+	path = require('path'),
 	DtraceConsumer = require("./lib/dtrace").DtraceConsumer;
 
 
@@ -48,7 +49,8 @@ consumer.on("http", function(data) {
 		if(data.time.getTime() - ref.time.getTime() < 3000) {
 			data.info = null;
 		}
-	} 
+	}
+	data['saved'] = {};
 	last_url[hurl.href] = data;
 	eviction();
 });
@@ -56,10 +58,18 @@ consumer.on("http", function(data) {
 consumer.on("file", function(data) {
 	eviction();
 	var _urls = [];
+
+	var filename = data.info.filename;
+	//save url that havent been save with this file
 	for( var k in last_url)  {
-		_urls.push(last_url[k]);
+		var my_url = last_url[k];
+
+		//this url have been saved with this file?
+		if(!my_url.saved[filename]) {
+			my_url.saved[filename] = true;
+			_urls.push(my_url);
+		}
 	}
-	last_url = {};
 	filter_content_type("text/html", _urls, function(urls) {
 		db.serialize(function() {
 			var stmt = db.prepare("INSERT INTO fileurls VALUES (?,?,?,?,?,?,?)");
@@ -117,6 +127,7 @@ var search_files = function(file, callback) {
 	  var records = [];
 	  db.serialize(function() {
 		db.each("SELECT * FROM fileurls where file like ? order by hdate desc", "%"+file, function(err, row) {
+			row.basename = path.basename(row.file);
 	  		records.push(row);
 		}, function(err, count) {
 			callback(records);
@@ -127,7 +138,8 @@ var search_files = function(file, callback) {
 var last_files = function(callback) {
 	var files = [];
 	db.serialize(function() {
-		db.each("select distinct file,max(fdate) as fdate from fileurls order by fdate desc limit 20", function(err, row) {
+		db.each("select distinct file,max(fdate) as fdate from fileurls group by file order by fdate desc limit 20", function(err, row) {
+			row.basename = path.basename(row.file);
 			files.push(row);
 		}, function(err, count) {
 			callback(files);

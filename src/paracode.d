@@ -1,4 +1,6 @@
-#!/usr/sbin/dtrace -ws
+#!/usr/sbin/dtrace -s
+
+
 /*
  * Gabriel Grise
  *
@@ -6,6 +8,7 @@
  */
 #pragma D option quiet
 #pragma D option strsize=1024
+#pragma D option cleanrate=333hz
 
 inline int af_inet = 2;
 
@@ -29,6 +32,7 @@ syscall::connect*:return
 	self->is_tcp_http = execname; /* flag the process for tracking */
 	self->is_socket[self->socket_fd] = 1; /* track this fd */
 	self->socket_fd = 0;
+	self->port = 0;
 }
 
 /*
@@ -38,12 +42,12 @@ syscall::write*:entry
 	&& arg2 > 10 && arg2 < 2048 /* discard small write and large write */ 
 	&& (self->is_socket[arg0] || self->is_tcp_http == execname)/* if the socket is known for http and flagged for tracking*/
 	/ {
-	buffer_len = arg2;
-	packet = stringof(copyin(arg1, buffer_len));
+	this->buffer_len = arg2;
+	this->packet = stringof(copyin(arg1, this->buffer_len));
 
-	self->http_req = packet;
-	self->is_http=index(packet, "HTTP/1."); /* look for an http header */
-	self->first_line_pos = index(packet, "\r\n");
+	self->http_req = this->packet;
+	self->is_http=index(this->packet, "HTTP/1."); /* look for an http header */
+	self->first_line_pos = index(this->packet, "\r\n");
 }
 
 syscall::write*:entry 
@@ -58,23 +62,23 @@ syscall::write*:entry
 
 syscall::write*:entry 
 /self->is_http > 0 && self->first_line_pos > 0/ { /* if the HTTP/1. was found in the buffer, process as http request */
-	packet = self->http_req;
+	this->packet = self->http_req;
 
 	self->is_socket[arg0] = 1;
 	
-	request = substr(packet, 0, self->first_line_pos);
+	this->request = substr(this->packet, 0, self->first_line_pos);
 
 	/* split METHOD, URL, VERSION */
-	i1 = index(request, " ");
-	self->method = substr(request, 0, i1);
+	this->i1 = index(this->request, " ");
+	self->method = substr(this->request, 0, this->i1);
 
-	i2 = rindex(request, " ");
+	this->i2 = rindex(this->request, " ");
 
-	self->url = substr(request, i1+1, i2-i1-1);	
+	self->url = substr(this->request, this->i1+1, this->i2-this->i1-1);	
 
-	self->http_version = substr(request, i2+1);
+	self->http_version = substr(this->request, this->i2+1);
 	
-	self->headers = substr(packet, self->first_line_pos+2, rindex(packet, "\r\n\r\n"));
+	self->headers = substr(this->packet, self->first_line_pos+2, rindex(this->packet, "\r\n\r\n"));
 	
 	self->host_pos = index(self->headers, "Host: ");
 	
@@ -88,19 +92,19 @@ syscall::write*:entry
 }
 syscall::write*:entry
 /self->has_data == 1 && self->ref_pos > 0/ {
-	content = self->headers + self->ref_pos + 9;
-	end = index(content, "\r\n");
-	self->ref = substr(content, 0, end); 
+	this->content = self->headers + self->ref_pos + 9;
+	this->end = index(this->content, "\r\n");
+	self->ref = substr(this->content, 0, this->end); 
 }
 syscall::write*:entry
 /self->has_data == 1 && self->host_pos >= 0 && (
 		self->method == "POST" || 
 		self->method == "GET") && self->http_version == "HTTP/1.1"/ {
 
-	header_index = self->host_pos;
-	content = self->headers + header_index + 6;
-	end = index(content, "\r\n");
-	self->host = substr(content, 0, end);
+	this->header_index = self->host_pos;
+	this->content = self->headers + this->header_index + 6;
+	this->end = index(this->content, "\r\n");
+	self->host = substr(this->content, 0, this->end);
 	
 	printf("u\t%s\t%d\t%s %s %s %s\n", execname, pid, self->method, self->host, self->url, self->ref);
 	self->host_pos = 0;
@@ -129,20 +133,24 @@ syscall::write*:return
 	self->ref_pos=0;
 	self->ref=0;
 }
+syscall::close*:entry 
+/self->is_socket[arg0]/ {
+	self->is_socket[arg0] = 0;
+}
 
 syscall::open:entry
-/execname == "vim" || execname == "Xcode"/
+/((arg1 & O_WRONLY) || (arg1 & O_RDWR)) && (execname == "vim" || execname == "Xcode")/
 { 
 	self->file = stringof(copyinstr(arg0));
-	l = strlen(self->file);
-	idx = rindex(self->file, ".");
-	ext = substr(self->file, idx, l);
-	self->is_program = ext == ".py"||
-		ext == ".m" ||
-		ext == ".h" ||
-		ext == ".c" ||
-		ext == ".js" ||
-		ext == ".erl";
+	this->l = strlen(self->file);
+	this->idx = rindex(self->file, ".");
+	this->ext = substr(self->file, this->idx, this->l);
+	self->is_program = this->ext == ".py"||
+		this->ext == ".m" ||
+		this->ext == ".h" ||
+		this->ext == ".c" ||
+		this->ext == ".js" ||
+		this->ext == ".erl";
 	self->fid = 0;
 }
 syscall::open:return
@@ -151,12 +159,12 @@ syscall::open:return
 	self->fid = arg1;
 	self->editor_pid = pid;
 	self->openfd[self->fid] = self->file;
+	self->file = 0;
 }
 syscall::open:return
 /!self->is_program/
 {
 	self->editor_pid = 0;
-	self->openfd[self->fid] = 0;
 	self->fid = 0;
 	self->file = 0;
 }
@@ -164,12 +172,11 @@ syscall::open:return
 syscall::write*:entry 
 /pid == self->editor_pid && self->openfd[arg0]!=0/ 
 {
-	self->is_program = 0;
 	printf("f\t%s\t%d\t%s\n",execname, pid, self->openfd[arg0]);
 }
 
 syscall::close:entry
-/pid == self->editor_pid && self->openfd[arg0]!=0/ {
+/self->is_program && self->openfd[arg0]!=0/ {
 	self->openfd[arg0] = 0;
-	self->file = 0;
+	self->is_program = 0;
 }
