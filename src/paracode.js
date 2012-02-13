@@ -107,9 +107,12 @@ var filter_content_type = function(content_type, list, mcallback) {
 			req.on('response', function(res) {
 				if(res.statusCode	< 399) {
 					var ct = res.headers['content-type'];
+					var cl = res.headers['content-length'];
 					if(ct && ct.indexOf(content_type) != -1) {
-						callback(null, data);
-						return;
+						if(res.statusCode != 200 || !cl || parseInt(cl) > 2048) {
+							callback(null, data);
+							return;
+						}
 					}
 				}
 				callback(null, false);

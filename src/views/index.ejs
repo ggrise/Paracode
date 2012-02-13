@@ -12,7 +12,7 @@
 			</tr>
 		<%topfiles.forEach(function(record) {
 			var dobj = new Date(parseInt(record.fdate));
-			var dtime = new Date().getTime() - dobj.getTime() > 1000*60*60*24 ? obj.toLocaleDateString() : dobj.toLocaleTimeString(); 
+			var dtime = new Date().getTime() - dobj.getTime() > 1000*60*60*24 ? dobj.toLocaleDateString() : dobj.toLocaleTimeString(); 
 		%>
 			<tr>
 				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
@@ -35,7 +35,7 @@
 			</tr>
 		<%records.forEach(function(record) {
 			var dobj = new Date(parseInt(record.hdate));
-			var dtime = new Date().getTime() - dobj.getTime() > 1000*60*60*24 ? obj.toLocaleDateString() : dobj.toLocaleTimeString(); 
+			var dtime = new Date().getTime() - dobj.getTime() > 1000*60*60*24 ? dobj.toLocaleDateString() : dobj.toLocaleTimeString(); 
 		%>
 			<tr>
 				<td title="<%= dobj.toLocaleString() %>"><%= dtime %></td>
