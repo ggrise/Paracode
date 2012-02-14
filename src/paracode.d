@@ -38,16 +38,17 @@ syscall::connect*:return
 /*
  */
 syscall::write*:entry 
-/self->is_socket[arg0] != -2 /* if not an http socket don't process */ 
-	&& arg2 > 10 && arg2 < 2048 /* discard small write and large write */ 
+/arg2 > 50 && arg2 < 2048 && self->is_socket[arg0] != -2 /* if not an http socket don't process */ 
 	&& (self->is_socket[arg0] || self->is_tcp_http == execname)/* if the socket is known for http and flagged for tracking*/
 	/ {
+
 	this->buffer_len = arg2;
 	this->packet = stringof(copyin(arg1, this->buffer_len));
 
 	self->http_req = this->packet;
 	self->is_http=index(this->packet, "HTTP/1."); /* look for an http header */
 	self->first_line_pos = index(this->packet, "\r\n");
+
 }
 
 syscall::write*:entry 
@@ -59,6 +60,12 @@ syscall::write*:entry
 }
 
 
+syscall::write*:entry 
+/self->is_http <= 0  || self->first_line_pos <= 0/ {
+	self->http_req = 0;
+	self->is_http = 0;
+	self->first_line_pos = 0;
+}
 
 syscall::write*:entry 
 /self->is_http > 0 && self->first_line_pos > 0/ { /* if the HTTP/1. was found in the buffer, process as http request */
@@ -132,6 +139,7 @@ syscall::write*:return
 	self->follow = 0;
 	self->ref_pos=0;
 	self->ref=0;
+	self->url=0;
 }
 syscall::close*:entry 
 /self->is_socket[arg0]/ {
