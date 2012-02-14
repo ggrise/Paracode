@@ -22,14 +22,14 @@ var DtraceConsumer = function() {
 		var pid = parseInt(httpinfo[1]);
 		var httptuple = httpinfo[2].split(" ");
 
-		this.emit('http', {execname: execname, pid: pid, time: new Date(), info: {method: httptuple[0], host: httptuple[1], path: httptuple[2], referer:httptuple[3] == "-" ? null : httptuple[3]}});
+		this.emit('url.visit', {execname: execname, pid: pid, time: new Date(), info: {method: httptuple[0], host: httptuple[1], path: httptuple[2], referer:httptuple[3] == "-" ? null : httptuple[3]}});
 	}
 
 	this.process_file = function(data) {
 		var execname = data[0];
 		var pid = data[1];
 		var file = data[2];
-		this.emit('file', {execname: execname, pid: pid, time: new Date(), info: {filename: file}});
+		this.emit('file.edit', {execname: execname, pid: pid, time: new Date(), info: {filename: file}});
 	}
 	this.process_output = function(data) {
 		var info = data.split("\t");
